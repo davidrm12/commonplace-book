@@ -89,7 +89,6 @@ const auth = {
 
     if (!token || !refresh) return false;
 
-    // If token is expired or expiring within 60s, refresh it
     if (Date.now() > expiresAt - 60000) {
       try {
         const data = await this.refreshToken(refresh);
@@ -102,7 +101,6 @@ const auth = {
       }
     }
 
-    // Token still valid
     accessToken = token;
     try {
       currentUser = await this.getUser(token);
@@ -132,13 +130,11 @@ const db = {
 
     const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, opts);
     if (res.status === 401) {
-      // Try refreshing the token once
       try {
         const refresh = localStorage.getItem('sb_refresh_token');
         if (refresh) {
           const data = await auth.refreshToken(refresh);
           auth.saveSession(data);
-          // Retry the request with new token
           headers['Authorization'] = `Bearer ${accessToken}`;
           const retry = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, { method, headers, body: body ? JSON.stringify(body) : undefined });
           if (!retry.ok) throw new Error('Request failed after token refresh');
@@ -163,7 +159,9 @@ const db = {
     return this.request('GET', 'entries?select=*&order=created_at.desc');
   },
   async insert(entry) {
-    const rows = await this.request('POST', 'entries', entry);
+    // Always attach user_id so the RLS INSERT policy passes
+    const payload = { ...entry, user_id: currentUser.id };
+    const rows = await this.request('POST', 'entries', payload);
     return rows?.[0] || rows;
   },
   async update(id, updates) {
@@ -270,15 +268,12 @@ $('#btn-signup').addEventListener('click', async () => {
 
   try {
     const data = await auth.signUp(email, password);
-    // Supabase may require email confirmation depending on project settings
     if (data.access_token) {
-      // Auto-confirmed — log in directly
       auth.saveSession(data);
       currentUser = data.user;
       showApp();
       loadEntries();
     } else {
-      // Email confirmation required
       showAuthSuccess('Account created! Check your email to confirm, then sign in.');
       $('#auth-signup').style.display = 'none';
       $('#auth-login').style.display = 'block';
@@ -369,7 +364,6 @@ function escapeHtml(str) {
 function renderEntries() {
   const filtered = getFiltered();
 
-  // Stats
   const catCounts = {};
   entries.forEach(e => { catCounts[e.category] = (catCounts[e.category] || 0) + 1; });
   statsBar.innerHTML = `
@@ -378,11 +372,9 @@ function renderEntries() {
     ${filtered.length !== entries.length ? `<span class="stat-pill">Showing: ${filtered.length}</span>` : ''}
   `;
 
-  // Selection bar
   selectionControls.style.display = selectedIds.size > 0 ? 'flex' : 'none';
   selectionCount.textContent = `${selectedIds.size} selected`;
 
-  // Cards
   if (entries.length === 0) {
     grid.style.display = 'none';
     emptyState.style.display = 'block';
@@ -669,7 +661,6 @@ async function loadEntries() {
 }
 
 async function init() {
-  // Try to restore an existing session
   const restored = await auth.restoreSession();
   if (restored) {
     showApp();
