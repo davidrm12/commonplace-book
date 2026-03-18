@@ -29,6 +29,7 @@
 
   --danger:         #a63d2f;
   --danger-hover:   #c14b3a;
+  --success:        #2e7d5b;
 
   /* Category colors */
   --cat-quotes:      #8b4513;
@@ -78,7 +79,6 @@ body {
   background-color: var(--bg-page);
   color: var(--text-primary);
   min-height: 100vh;
-  /* Subtle paper texture via gradient noise */
   background-image:
     radial-gradient(ellipse at 20% 50%, rgba(212,165,116,0.08) 0%, transparent 50%),
     radial-gradient(ellipse at 80% 20%, rgba(139,69,19,0.04) 0%, transparent 50%),
@@ -113,7 +113,94 @@ p, span, label, input, select, textarea, button { font-family: var(--font-sans);
   opacity: 1;
 }
 
-/* ---- Header ---- */
+/* ============================================
+   AUTH SCREEN
+   ============================================ */
+.auth-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-xl);
+}
+.auth-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: var(--space-2xl) var(--space-xl);
+  width: 100%;
+  max-width: 400px;
+  animation: modalIn 0.35s ease;
+}
+.auth-brand {
+  text-align: center;
+  margin-bottom: var(--space-xl);
+}
+.auth-brand .brand-mark {
+  margin: 0 auto var(--space-md);
+}
+.auth-brand h1 {
+  font-size: 1.6rem;
+  letter-spacing: -0.5px;
+  margin-bottom: var(--space-xs);
+}
+.auth-tagline {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 0.85rem;
+  color: var(--text-tertiary);
+}
+.auth-form {
+  margin-top: var(--space-lg);
+}
+.auth-form .form-group {
+  margin-bottom: var(--space-md);
+}
+.btn-full {
+  width: 100%;
+  justify-content: center;
+  padding: 12px;
+  font-size: 0.95rem;
+}
+.auth-switch {
+  text-align: center;
+  margin-top: var(--space-md);
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+.auth-switch a {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 600;
+}
+.auth-switch a:hover {
+  text-decoration: underline;
+}
+.auth-error {
+  margin-top: var(--space-md);
+  padding: 10px 14px;
+  background: rgba(166,61,47,0.08);
+  border: 1px solid rgba(166,61,47,0.2);
+  border-radius: var(--radius-md);
+  color: var(--danger);
+  font-size: 0.85rem;
+  text-align: center;
+}
+.auth-success {
+  margin-top: var(--space-md);
+  padding: 10px 14px;
+  background: rgba(46,125,91,0.08);
+  border: 1px solid rgba(46,125,91,0.2);
+  border-radius: var(--radius-md);
+  color: var(--success);
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+/* ============================================
+   HEADER
+   ============================================ */
 .site-header {
   background: var(--bg-deep);
   color: var(--text-inverse);
@@ -165,6 +252,22 @@ p, span, label, input, select, textarea, button { font-family: var(--font-sans);
   gap: var(--space-sm);
   flex-shrink: 0;
 }
+.header-user {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding-left: var(--space-sm);
+  border-left: 1px solid rgba(255,255,255,0.15);
+  margin-left: var(--space-xs);
+}
+.user-email {
+  font-size: 0.75rem;
+  color: var(--accent-light);
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 /* ---- Buttons ---- */
 .btn {
@@ -181,22 +284,26 @@ p, span, label, input, select, textarea, button { font-family: var(--font-sans);
   white-space: nowrap;
   font-family: var(--font-sans);
 }
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 .btn-primary {
   background: var(--accent);
   color: var(--text-inverse);
 }
-.btn-primary:hover { background: var(--accent-hover); }
+.btn-primary:hover:not(:disabled) { background: var(--accent-hover); }
 .btn-ghost {
   background: transparent;
   color: var(--text-inverse);
   border: 1px solid rgba(255,255,255,0.2);
 }
-.btn-ghost:hover { background: rgba(255,255,255,0.1); }
+.btn-ghost:hover:not(:disabled) { background: rgba(255,255,255,0.1); }
 .btn-danger {
   background: var(--danger);
   color: var(--text-inverse);
 }
-.btn-danger:hover { background: var(--danger-hover); }
+.btn-danger:hover:not(:disabled) { background: var(--danger-hover); }
 .btn-sm { padding: 5px 10px; font-size: 0.8rem; }
 .btn-close {
   background: none; border: none; cursor: pointer;
@@ -430,7 +537,6 @@ p, span, label, input, select, textarea, button { font-family: var(--font-sans);
   line-height: 1.65;
   color: var(--text-secondary);
   flex: 1;
-  /* Clamp to ~5 lines */
   display: -webkit-box;
   -webkit-line-clamp: 5;
   -webkit-box-orient: vertical;
@@ -618,9 +724,19 @@ p, span, label, input, select, textarea, button { font-family: var(--font-sans);
   }
   .header-actions {
     width: 100%;
+    flex-wrap: wrap;
     justify-content: flex-end;
   }
   .header-actions .btn span { display: none; }
+  .header-user {
+    width: 100%;
+    justify-content: flex-end;
+    border-left: none;
+    margin-left: 0;
+    padding-left: 0;
+    padding-top: var(--space-sm);
+    border-top: 1px solid rgba(255,255,255,0.1);
+  }
   .toolbar-inner {
     padding: var(--space-sm) var(--space-md);
   }
