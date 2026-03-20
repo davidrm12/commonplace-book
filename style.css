@@ -30,6 +30,7 @@
   --danger:         #a63d2f;
   --danger-hover:   #c14b3a;
   --success:        #2e7d5b;
+  --star-color:     #d4a017;
 
   /* Category colors */
   --cat-quotes:      #8b4513;
@@ -37,6 +38,7 @@
   --cat-references:  #4a6fa5;
   --cat-reflections: #7b5ea7;
   --cat-frameworks:  #c17817;
+  --cat-other:       #6b7280;
 
   /* Typography */
   --font-serif: 'Libre Baskerville', Georgia, 'Times New Roman', serif;
@@ -317,6 +319,79 @@ p, span, label, input, select, textarea, button { font-family: var(--font-sans);
 }
 .btn-close:hover { color: var(--text-primary); }
 
+/* ---- Star filter button ---- */
+.btn-star-filter {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 8px 10px;
+  cursor: pointer;
+  color: var(--text-tertiary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+.btn-star-filter:hover {
+  border-color: var(--star-color);
+  color: var(--star-color);
+}
+.btn-star-filter.active {
+  background: rgba(212,160,23,0.1);
+  border-color: var(--star-color);
+  color: var(--star-color);
+}
+.btn-star-filter.active svg {
+  fill: var(--star-color);
+}
+
+/* ---- Re-randomize button ---- */
+.btn-reshuffle {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 8px 10px;
+  cursor: pointer;
+  color: var(--text-tertiary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+.btn-reshuffle:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-bg);
+}
+.btn-reshuffle:active svg {
+  transform: rotate(180deg);
+}
+.btn-reshuffle svg {
+  transition: transform 0.3s ease;
+}
+
+/* ---- Card star button ---- */
+.card-star-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-tertiary);
+  padding: 4px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  transition: all 0.15s;
+}
+.card-star-btn:hover {
+  color: var(--star-color);
+}
+.card-star-btn.starred {
+  color: var(--star-color);
+}
+.card-star-btn.starred svg {
+  fill: var(--star-color);
+}
+
 /* ---- Toolbar ---- */
 .toolbar {
   background: var(--bg-card);
@@ -366,6 +441,7 @@ p, span, label, input, select, textarea, button { font-family: var(--font-sans);
 .filter-group {
   display: flex;
   gap: var(--space-sm);
+  align-items: center;
 }
 .select-input {
   padding: 9px 32px 9px 12px;
@@ -491,11 +567,15 @@ p, span, label, input, select, textarea, button { font-family: var(--font-sans);
 .card-actions {
   display: flex;
   gap: 2px;
-  opacity: 0;
-  transition: opacity 0.15s;
   flex-shrink: 0;
 }
-.entry-card:hover .card-actions { opacity: 1; }
+/* Star button always visible; other actions on hover */
+.card-action-btn.star-btn { opacity: 1; }
+.card-action-btn:not(.star-btn) {
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.entry-card:hover .card-action-btn { opacity: 1; }
 .card-action-btn {
   background: none; border: none; cursor: pointer;
   color: var(--text-tertiary);
@@ -507,6 +587,9 @@ p, span, label, input, select, textarea, button { font-family: var(--font-sans);
 }
 .card-action-btn:hover { color: var(--text-primary); background: var(--bg-warm); }
 .card-action-btn.delete:hover { color: var(--danger); }
+.card-action-btn.star-btn.starred { color: var(--star-color); }
+.card-action-btn.star-btn.starred svg { fill: var(--star-color); }
+.card-action-btn.star-btn:hover { color: var(--star-color); }
 
 .card-category {
   display: inline-block;
@@ -523,6 +606,7 @@ p, span, label, input, select, textarea, button { font-family: var(--font-sans);
 .card-category[data-cat="References"]  { background: rgba(74,111,165,0.1); color: var(--cat-references); }
 .card-category[data-cat="Reflections"] { background: rgba(123,94,167,0.1); color: var(--cat-reflections); }
 .card-category[data-cat="Frameworks"]  { background: rgba(193,120,23,0.1); color: var(--cat-frameworks); }
+.card-category[data-cat="Other"]       { background: rgba(107,114,128,0.1); color: var(--cat-other); }
 
 .card-title {
   font-family: var(--font-serif);
@@ -741,7 +825,7 @@ p, span, label, input, select, textarea, button { font-family: var(--font-sans);
     padding: var(--space-sm) var(--space-md);
   }
   .search-box { max-width: none; }
-  .filter-group { width: 100%; }
+  .filter-group { width: 100%; flex-wrap: wrap; }
   .filter-group select { flex: 1; }
   .entries-grid {
     grid-template-columns: 1fr;

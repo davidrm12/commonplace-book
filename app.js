@@ -178,6 +178,8 @@ let entries = [];
 let selectedIds = new Set();
 let editingId = null;
 let deleteTarget = null;
+let starFilterActive = false;
+let randomSeed = Math.random(); // used for stable random sort
 
 // ---- DOM refs ----
 const $ = (sel) => document.querySelector(sel);
@@ -195,6 +197,8 @@ const selectionControls = $('#selection-controls');
 const selectionCount = $('#selection-count');
 const statsBar = $('#stats-bar');
 const toast = $('#toast');
+const btnStarFilter = $('#btn-star-filter');
+const btnReshuffle = $('#btn-reshuffle');
 
 // ---- Toast ----
 let toastTimer;
@@ -203,6 +207,25 @@ function showToast(msg) {
   toast.classList.add('visible');
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => toast.classList.remove('visible'), 2600);
+}
+
+// ---- Seeded random for stable shuffle ----
+function seededRandom(seed) {
+  let s = seed;
+  return function() {
+    s = (s * 16807 + 0) % 2147483647;
+    return (s - 1) / 2147483646;
+  };
+}
+
+function shuffleArray(arr, seed) {
+  const rng = seededRandom(Math.floor(seed * 2147483647));
+  const shuffled = [...arr];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
 }
 
 // ============================================
@@ -329,6 +352,13 @@ $('#btn-logout').addEventListener('click', () => {
 // ============================================
 function getFiltered() {
   let list = [...entries];
+
+  // Star filter
+  if (starFilterActive) {
+    list = list.filter(e => e.starred);
+  }
+
+  // Search
   const q = searchInput.value.trim().toLowerCase();
   if (q) {
     list = list.filter(e =>
@@ -338,15 +368,19 @@ function getFiltered() {
       (e.tags || []).some(t => t.toLowerCase().includes(q))
     );
   }
+
+  // Category filter
   const cat = filterCategory.value;
   if (cat !== 'all') list = list.filter(e => e.category === cat);
 
+  // Sort
   const sort = sortBy.value;
   switch (sort) {
     case 'newest': list.sort((a, b) => new Date(b.created_at) - new Date(a.created_at)); break;
     case 'oldest': list.sort((a, b) => new Date(a.created_at) - new Date(b.created_at)); break;
     case 'alpha':  list.sort((a, b) => (a.title || '').localeCompare(b.title || '')); break;
     case 'category': list.sort((a, b) => (a.category || '').localeCompare(b.category || '') || new Date(b.created_at) - new Date(a.created_at)); break;
+    case 'random': list = shuffleArray(list, randomSeed); break;
   }
   return list;
 }
@@ -364,11 +398,16 @@ function escapeHtml(str) {
 function renderEntries() {
   const filtered = getFiltered();
 
+  // Show/hide reshuffle button
+  btnReshuffle.style.display = sortBy.value === 'random' ? 'flex' : 'none';
+
   const catCounts = {};
   entries.forEach(e => { catCounts[e.category] = (catCounts[e.category] || 0) + 1; });
+  const starredCount = entries.filter(e => e.starred).length;
   statsBar.innerHTML = `
     <span class="stat-pill">${entries.length} entr${entries.length === 1 ? 'y' : 'ies'}</span>
     ${Object.entries(catCounts).map(([c, n]) => `<span class="stat-pill">${c}: ${n}</span>`).join('')}
+    ${starredCount > 0 ? `<span class="stat-pill">★ ${starredCount}</span>` : ''}
     ${filtered.length !== entries.length ? `<span class="stat-pill">Showing: ${filtered.length}</span>` : ''}
   `;
 
@@ -391,6 +430,8 @@ function renderEntries() {
     return;
   }
 
+  const starSvgEmpty = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`;
+
   grid.innerHTML = filtered.map((e, i) => `
     <div class="entry-card ${selectedIds.has(e.id) ? 'selected' : ''}" data-id="${e.id}" style="animation-delay:${Math.min(i * 30, 300)}ms">
       <div class="card-top">
@@ -399,6 +440,9 @@ function renderEntries() {
           <span class="card-category" data-cat="${escapeHtml(e.category)}">${escapeHtml(e.category)}</span>
         </div>
         <div class="card-actions">
+          <button class="card-action-btn star-btn ${e.starred ? 'starred' : ''}" data-id="${e.id}" title="${e.starred ? 'Unstar' : 'Star'}">
+            ${starSvgEmpty}
+          </button>
           <button class="card-action-btn edit" data-id="${e.id}" title="Edit">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
           </button>
@@ -472,6 +516,22 @@ async function saveEntry() {
   }
 }
 
+// ---- Star toggle ----
+async function toggleStar(id) {
+  const entry = entries.find(e => e.id === id);
+  if (!entry) return;
+  const newVal = !entry.starred;
+  try {
+    await db.update(id, { starred: newVal });
+    entry.starred = newVal;
+    renderEntries();
+    showToast(newVal ? 'Entry starred' : 'Star removed');
+  } catch (err) {
+    console.error(err);
+    showToast('Error updating star — check console');
+  }
+}
+
 function confirmDelete(id) {
   deleteTarget = id;
   $('#delete-message').textContent = id === 'selected'
@@ -512,6 +572,7 @@ function formatForClaude(entryList) {
     block += `**Category:** ${e.category}\n`;
     if (e.source) block += `**Source:** ${e.source}\n`;
     if (e.tags?.length) block += `**Tags:** ${e.tags.join(', ')}\n`;
+    if (e.starred) block += `**Starred:** Yes\n`;
     block += `\n${e.content}`;
     return block;
   }).join('\n\n---\n\n');
@@ -551,6 +612,7 @@ async function importJSON(file) {
         source: item.source || '',
         content: item.content || '',
         tags: item.tags || [],
+        starred: item.starred || false,
       };
       const created = await db.insert(entry);
       if (created) { entries.unshift(created); count++; }
@@ -588,8 +650,25 @@ document.addEventListener('keydown', (e) => {
 
 searchInput.addEventListener('input', renderEntries);
 filterCategory.addEventListener('change', renderEntries);
-sortBy.addEventListener('change', renderEntries);
+sortBy.addEventListener('change', () => {
+  if (sortBy.value === 'random') randomSeed = Math.random();
+  renderEntries();
+});
 
+// Star filter toggle
+btnStarFilter.addEventListener('click', () => {
+  starFilterActive = !starFilterActive;
+  btnStarFilter.classList.toggle('active', starFilterActive);
+  renderEntries();
+});
+
+// Re-randomize
+btnReshuffle.addEventListener('click', () => {
+  randomSeed = Math.random();
+  renderEntries();
+});
+
+// Grid delegation
 grid.addEventListener('click', (e) => {
   const card = e.target.closest('.entry-card');
   if (!card) return;
@@ -598,6 +677,11 @@ grid.addEventListener('click', (e) => {
   if (e.target.classList.contains('card-checkbox')) {
     if (selectedIds.has(id)) selectedIds.delete(id); else selectedIds.add(id);
     renderEntries();
+    return;
+  }
+  // Star toggle
+  if (e.target.closest('.card-action-btn.star-btn')) {
+    toggleStar(id);
     return;
   }
   if (e.target.closest('.card-action-btn.edit')) {
@@ -649,6 +733,8 @@ async function loadEntries() {
   emptyState.style.display = 'none';
   try {
     entries = await db.fetchAll() || [];
+    // Normalize: existing entries without 'starred' field get false
+    entries.forEach(e => { if (e.starred === undefined || e.starred === null) e.starred = false; });
     loadingState.style.display = 'none';
     renderEntries();
   } catch (err) {
