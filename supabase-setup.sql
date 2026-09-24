@@ -52,6 +52,11 @@ CREATE INDEX IF NOT EXISTS idx_entries_user_category ON entries(user_id, categor
 
 ALTER TABLE entries ENABLE ROW LEVEL SECURITY;
 
+-- Table privileges for the API roles. RLS below still limits rows to their owner.
+-- (Newer Supabase projects no longer grant these automatically for tables made in SQL.)
+REVOKE ALL ON entries FROM anon;
+GRANT SELECT, INSERT, UPDATE, DELETE ON entries TO authenticated;
+
 DROP POLICY IF EXISTS "Users can read own entries" ON entries;
 DROP POLICY IF EXISTS "Users can insert own entries" ON entries;
 DROP POLICY IF EXISTS "Users can update own entries" ON entries;
@@ -96,6 +101,9 @@ CREATE TABLE IF NOT EXISTS categories (
 );
 
 ALTER TABLE categories ENABLE ROW LEVEL SECURITY;
+
+REVOKE ALL ON categories FROM anon;
+GRANT SELECT, INSERT, UPDATE, DELETE ON categories TO authenticated;
 
 DROP POLICY IF EXISTS "Users can read own categories" ON categories;
 DROP POLICY IF EXISTS "Users can insert own categories" ON categories;
