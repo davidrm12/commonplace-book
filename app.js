@@ -123,9 +123,9 @@ const db = {
   deleteCategory(id, moveTo) { return this.request('POST', 'rpc/delete_category', { p_id: id, p_move_to: moveTo }); },
 };
 
-// Table or RPC missing: the Supabase migration hasn't been run yet
+// Table/RPC missing (migration not run) or not granted to the API role (42501)
 function isMissingSchemaError(err) {
-  return err instanceof DbError && (err.status === 404 || ['PGRST202', 'PGRST205', '42P01', '42883'].includes(err.code));
+  return err instanceof DbError && (err.status === 404 || ['PGRST202', 'PGRST205', '42P01', '42883', '42501'].includes(err.code));
 }
 
 // ---- State ----
@@ -257,7 +257,7 @@ async function loadCategories() {
   } catch (err) {
     if (!isMissingSchemaError(err)) throw err;
     // Migration not run yet: keep the app usable with the built-in list
-    console.warn('categories table not found — run supabase-setup.sql to enable category management');
+    console.warn('categories table unavailable — run supabase-setup.sql to enable category management:', err.message);
     categoriesManaged = false;
     rows = DEFAULT_CATEGORIES.map((c, i) => ({ ...c, id: `default-${i}`, position: i }));
   }
